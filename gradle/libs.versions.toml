@@ -1,0 +1,16 @@
+[versions]
+agp = "8.7.2"
+kotlin = "2.0.21"
+coreKtx = "1.15.0"
+lyricGetterApi = "6.0.0"
+xposed-api = "82"
+[libraries]
+lyric-getter-api = { module = "com.github.xiaowine:Lyric-Getter-Api", version.ref = "lyricGetterApi" }
+xposed-api = { group = "de.robv.android.xposed", name = "api", version.ref = "xposed-api" }
+ezXHelper = { module = "com.github.kyuubiran:EzXHelper", version = "2.2.0" }
+androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
+
+[plugins]
+android-application = { id = "com.android.application", version.ref = "agp" }
+kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
+
