@@ -11,13 +11,52 @@ import android.os.Bundle
 import androidx.core.app.NotificationCompat
 import androidx.core.graphics.drawable.IconCompat
 import androidx.core.graphics.drawable.toBitmap
+import cn.lyric.getter.api.API
+import cn.lyric.getter.api.data.LyricData
+import cn.lyric.getter.api.listener.LyricListener
+import cn.lyric.getter.api.listener.LyricReceiver
+import cn.lyric.getter.api.tools.Tools.registerLyricListener
+import com.github.kyuubiran.ezxhelper.ClassUtils.loadClass
+import com.github.kyuubiran.ezxhelper.HookFactory.`-Static`.createHook
+import com.github.kyuubiran.ezxhelper.finders.MethodFinder.`-Static`.methodFinder
+import com.wuyou.notification.lyric.LogUtil.log
 import org.json.JSONObject
 
 abstract class BaseHook {
     var isInit: Boolean = false
     val context: Application by lazy { AndroidAppHelper.currentApplication() }
 
+    val receiver = LyricReceiver(object : LyricListener() {
+        override fun onUpdate(lyricData: LyricData) {
+            try {
+                this@BaseHook.onUpdate(lyricData)
+            } catch (e: Throwable) {
+                log(e)
+            }
+        }
+
+        override fun onStop(lyricData: LyricData) {
+            try {
+                this@BaseHook.onStop()
+            } catch (e: Throwable) {
+                log(e)
+            }
+        }
+    })
+
+    init {
+        loadClass("android.app.Application").methodFinder().first { name == "onCreate" }
+            .createHook {
+                after {
+                    registerLyricListener(context, API.API_VERSION, receiver)
+                    log("registerLyricListener")
+                }
+            }
+    }
+
     abstract fun init()
+    abstract fun onUpdate(lyricData: LyricData)
+    abstract fun onStop()
 
     @SuppressLint("NotificationPermission")
     fun sendNotification(text: String) {

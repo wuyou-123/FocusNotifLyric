@@ -1,4 +1,6 @@
 import org.jetbrains.kotlin.konan.properties.Properties
+import kotlin.random.Random
+import kotlin.random.nextInt
 
 plugins {
     alias(libs.plugins.android.application)
@@ -8,6 +10,7 @@ plugins {
 val localProperties = Properties()
 if (rootProject.file("local.properties").canRead())
     localProperties.load(rootProject.file("local.properties").inputStream())
+val v = Random.nextInt(1..10000)
 android {
     namespace = "com.wuyou.notification.lyric"
     compileSdk = 35
@@ -15,8 +18,10 @@ android {
         applicationId = "com.wuyou.notification.lyric"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = v
+        versionName = "$v.0"
+//        versionCode = 1
+//        versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
