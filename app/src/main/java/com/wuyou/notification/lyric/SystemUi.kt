@@ -1,18 +1,20 @@
 package com.wuyou.notification.lyric
 
 import android.service.notification.StatusBarNotification
+import android.view.Choreographer
+import android.view.View
 import android.widget.TextView
 import cn.lyric.getter.api.data.LyricData
 import com.github.kyuubiran.ezxhelper.ClassUtils.loadClass
 import com.github.kyuubiran.ezxhelper.HookFactory.`-Static`.createHook
 import com.github.kyuubiran.ezxhelper.finders.ConstructorFinder.`-Static`.constructorFinder
 import com.github.kyuubiran.ezxhelper.finders.MethodFinder.`-Static`.methodFinder
+import com.wuyou.notification.lyric.LogUtil.log
 import de.robv.android.xposed.XC_MethodHook.Unhook
 import de.robv.android.xposed.XposedHelpers
 
 object SystemUi : BaseHook() {
     private val focusTextViewList = mutableListOf<TextView>()
-    private var speed = -0.1f
     override fun init() {
         // 拦截构建通知的函数
         loadClass("com.android.systemui.statusbar.notification.row.NotifBindPipeline").methodFinder()
@@ -47,6 +49,17 @@ object SystemUi : BaseHook() {
         // 构建通知栏通知函数
 //        loadClass("com.android.systemui.statusbar.notification.row.NotificationContentInflaterInjector").methodFinder()
 //            .first { name == "createRemoteViews" }
+        // 重设mLastAnimationTime,取消闪烁动画(让代码以为刚播放过动画,所以这次不播放)
+        loadClass("com.android.systemui.statusbar.phone.FocusedNotifPromptView").methodFinder()
+            .first { name == "setData" }.createHook {
+                before {
+                    XposedHelpers.setLongField(
+                        it.thisObject,
+                        "mLastAnimationTime",
+                        System.currentTimeMillis()
+                    )
+                }
+            }
 
         // 拿到插件的classloader
         loadClass("com.android.systemui.shared.plugins.PluginInstance").methodFinder()
@@ -85,18 +98,60 @@ object SystemUi : BaseHook() {
             }
     }
 
+    private const val MARQUEE_DELAY = 1200L
+    private var speed = -0.1f
+    private const val SPEED_INCREASE = 1.8f
+
+    private val runnablePool = mutableMapOf<Int, Runnable>()
     override fun onUpdate(lyricData: LyricData) {
+        val lyric = lyricData.lyric
         focusTextViewList.forEach {
-            XposedHelpers.callMethod(it, "setMarqueeRepeatLimit", 1)
-            XposedHelpers.callMethod(it, "startMarqueeLocal")
-            val m = XposedHelpers.getObjectField(it, "mMarquee")
-            if (speed == -0.1f) {
-                speed = XposedHelpers.getFloatField(m, "mPixelsPerMs") * 1.5f
-                XposedHelpers.setFloatField(m, "mPixelsPerMs", speed)
+            it.text = lyric
+            if (XposedHelpers.getAdditionalStaticField(it, "is_scrolling") == 1) {
+                val m0 = XposedHelpers.getObjectField(it, "mMarquee")
+                if (m0 != null) {
+                    // 设置速度并且调用停止函数,重置歌词位置
+                    XposedHelpers.setFloatField(m0, "mPixelsPerMs", 0f)
+                    XposedHelpers.callMethod(m0, "stop")
+                }
             }
+            val startScroll = runnablePool.getOrPut(it.hashCode()) {
+                Runnable { startScroll(it) }
+            }
+            it.handler?.removeCallbacks(startScroll)
+            it.postDelayed(startScroll, MARQUEE_DELAY)
+        }
+    }
+
+    private fun startScroll(textView: TextView) {
+        try {
+            // 开始滚动
+            XposedHelpers.callMethod(textView, "setMarqueeRepeatLimit", 1)
+            XposedHelpers.callMethod(textView, "startMarqueeLocal")
+
+            val m = XposedHelpers.getObjectField(textView, "mMarquee") ?: return
+            if (speed == -0.1f) {
+                // 初始化滚动速度
+                speed = XposedHelpers.getFloatField(m, "mPixelsPerMs") * SPEED_INCREASE
+            }
+            val width =
+                (textView.width - textView.getCompoundPaddingLeft() - textView.getCompoundPaddingRight()).toFloat()
+            val lineWidth = textView.layout.getLineWidth(0)
+            // 重设最大滚动宽度,只能滚动到文本结束
+            XposedHelpers.setFloatField(m, "mMaxScroll", lineWidth - width)
+            // 重设速度
+            XposedHelpers.setFloatField(m, "mPixelsPerMs", speed)
+            // 移除回调,防止滚动结束之后重置滚动位置
+            XposedHelpers.setObjectField(m, "mRestartCallback", Choreographer.FrameCallback {})
+            XposedHelpers.setAdditionalStaticField(textView, "is_scrolling", 1)
+        } catch (e: Throwable) {
+            log(e)
         }
     }
 
     override fun onStop() {
+        focusTextViewList.forEach {
+            it.visibility = View.GONE
+        }
     }
 }
