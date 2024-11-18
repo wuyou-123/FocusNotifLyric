@@ -12,7 +12,7 @@
             android:value="true" />
         <meta-data
             android:name="xposeddescription"
-            android:value="使用澎湃OS2焦点通知显示歌词\n配合&quot;酒域-歌词获取&quot;使用\nby CoolApk@无忧12321" />
+            android:value="使用澎湃OS2焦点通知显示歌词\n配合&quot;酒域-歌词获取&quot;使用\nby 无忧12321@CoolApk" />
         <meta-data
             android:name="xposedminversion"
             android:value="82" />
