@@ -68,6 +68,7 @@ abstract class BaseHook {
         builder.setContentTitle(text)
         builder.setSmallIcon(IconCompat.createWithBitmap(bitmap))
         builder.setTicker(text).setPriority(NotificationCompat.PRIORITY_LOW)
+        builder.setOngoing(true)
         builder.setContentIntent(
             PendingIntent.getActivity(
                 context, 0, launchIntent, PendingIntent.FLAG_MUTABLE
