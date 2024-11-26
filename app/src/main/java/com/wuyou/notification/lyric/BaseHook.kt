@@ -6,6 +6,7 @@ import android.app.Application
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
+import android.content.Intent
 import android.graphics.drawable.Icon
 import android.os.Bundle
 import androidx.core.app.NotificationCompat
@@ -58,7 +59,7 @@ abstract class BaseHook {
     abstract fun onUpdate(lyricData: LyricData)
     abstract fun onStop()
 
-    @SuppressLint("NotificationPermission")
+    @SuppressLint("NotificationPermission", "LaunchActivityFromNotification")
     fun sendNotification(text: String) {
 //        log("sendNotification: " + context.packageName + ": " + text)
         createNotificationChannel()
@@ -69,10 +70,15 @@ abstract class BaseHook {
         builder.setSmallIcon(IconCompat.createWithBitmap(bitmap))
         builder.setTicker(text).setPriority(NotificationCompat.PRIORITY_LOW)
         builder.setOngoing(true)
+//        val pendingIntent = PendingIntent.getActivity(
+//            context, 0, launchIntent, PendingIntent.FLAG_MUTABLE
+//        )
+
+        val intent = Intent("$CHANNEL_ID.actions.switchClockStatus")
+        val pendingIntent = PendingIntent.getBroadcast(context, 0, intent,
+            PendingIntent.FLAG_IMMUTABLE)
         builder.setContentIntent(
-            PendingIntent.getActivity(
-                context, 0, launchIntent, PendingIntent.FLAG_MUTABLE
-            )
+            pendingIntent
         )
         val jSONObject = JSONObject()
         val jSONObject3 = JSONObject()
@@ -83,6 +89,10 @@ abstract class BaseHook {
         jSONObject3.put("ticker", text)
         jSONObject3.put("tickerPic", "miui.focus.pic_ticker")
         jSONObject3.put("tickerPicDark", "miui.focus.pic_ticker_dark")
+//        jSONObject3.put("updatable", true)
+//            .put("enableFloat", false)
+//            .put("aodTitle", text)
+//            .put("aodPic", "miui.focus.pic_ticker")
 
         jSONObject.put("param_v2", jSONObject3)
         val bundle = Bundle()

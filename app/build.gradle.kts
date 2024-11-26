@@ -15,8 +15,8 @@ android {
         applicationId = "com.wuyou.notification.lyric"
         minSdk = 29
         targetSdk = 35
-        versionCode = 13
-        versionName = "1.3"
+        versionCode = 14
+        versionName = "1.4"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

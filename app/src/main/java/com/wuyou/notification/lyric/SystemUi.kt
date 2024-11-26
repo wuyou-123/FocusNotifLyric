@@ -1,6 +1,10 @@
 package com.wuyou.notification.lyric
 
 import android.annotation.SuppressLint
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import android.graphics.Color
 import android.graphics.Rect
 import android.service.notification.StatusBarNotification
@@ -38,7 +42,7 @@ object SystemUi : BaseHook() {
     private var isShowingFocusedLyric: Boolean = false
 
     private fun updateLayout() {
-        if (isShowingFocused.value && isLyric.value) {
+        if (isShowingFocused.value && isLyric.value && !showCLock) {
             isShowingFocusedLyric = true
             // 如果在显示歌词,就隐藏时钟,占位布局和竖线
             mStatusBarLeftContainer?.visibility = View.INVISIBLE
@@ -55,7 +59,24 @@ object SystemUi : BaseHook() {
 
     }
 
+    private var showCLock = false
+
+    @SuppressLint("UnspecifiedRegisterReceiverFlag")
     override fun init() {
+
+        loadClass("android.app.Application").methodFinder().first { name == "onCreate" }
+            .createHook {
+                after {
+                    val mFilter = IntentFilter()
+                    mFilter.addAction("$CHANNEL_ID.actions.switchClockStatus")
+                    context.registerReceiver(object : BroadcastReceiver() {
+                        override fun onReceive(context: Context?, intent: Intent?) {
+                            showCLock = !showCLock
+                            updateLayout()
+                        }
+                    }, mFilter)
+                }
+            }
         loadClass("com.android.systemui.statusbar.phone.MiuiPhoneStatusBarView").methodFinder()
             .filterByName("onFinishInflate").first().createAfterHook {
                 // 通知栏左边部分(包含时间和通知图标)
