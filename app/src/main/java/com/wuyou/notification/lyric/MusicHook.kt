@@ -13,7 +13,7 @@ object MusicHook : BaseHook() {
             val pkgName = lyricData.extraData.packageName
             if (pkgName == context.packageName) {
                 try {
-                    sendNotification(lyricData.lyric)
+                    sendNotification(lyricData.lyric,lyricData.extraData)
                 } catch (e: Throwable) {
                     log(e)
                 }
